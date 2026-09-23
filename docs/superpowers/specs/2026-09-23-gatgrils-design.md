@@ -56,7 +56,7 @@ Report per seed and aggregate across 12 deterministic seeds:
 
 1. Same-tape output discrepancy between each base model and its gauge twins.
 2. Relative drift of invariant response features and aligned grammar transition probabilities across each twin pair.
-3. Held-out probe-response NRMSE for a grammar-conditioned response predictor, compared with activation, shuffled-response, and per-step-only controls.
+3. Held-out forecast NRMSE of the next gauge-invariant response descriptor, predicted from the current grammar coordinate and input; compare with activation-cluster, shuffled-response, and per-step-only controls. A held-out probe bank separately checks whether finite-difference Jacobians predict local responses on unseen directions; this is a Jacobian-estimation calibration, not the cross-gauge predictive score.
 4. Held-out coordinate-transition negative log likelihood compared with shuffled-order and bag-of-coordinates controls.
 5. Post-hoc association with generator modes, clearly labeled diagnostic.
 
@@ -65,7 +65,7 @@ Pass requires all of the following:
 - Base and gauge-twin output maximum absolute discrepancy <= 1e-10 in float64.
 - Median invariant-feature relative drift <= 1e-6 for condition numbers 1 and 3, and <= 1e-4 for condition number 10.
 - After label alignment, gauge-twin transition-distribution total-variation distance <= 0.02.
-- The grammar-conditioned held-out probe NRMSE beats activation clustering and shuffled responses on at least 9 of 12 seeds, with at least 10% lower median NRMSE than activation clustering.
+- The grammar-conditioned held-out next-invariant-descriptor forecast NRMSE beats activation clustering and shuffled responses on at least 9 of 12 seeds, with at least 10% lower median NRMSE than activation clustering.
 - Ordered grammar held-out transition NLL beats both shuffled-order and bag-of-coordinates controls on at least 9 of 12 seeds.
 
 If the exact gauge-twin output check fails, the run is invalid. If invariance passes but predictive criteria fail, report a negative result: gauge-invariant response coordinates were recovered, but this grammar did not earn predictive value. No metric may be dropped after seeing results.
