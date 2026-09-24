@@ -2,41 +2,112 @@
   "aggregate": {
     "admission_damage_median": -0.0625,
     "gates": {
-      "admission_damage": {"pass": false, "threshold": 0.2, "value": -0.0625},
-      "own_surface_transplants": {"pass": false, "threshold": 0.8, "values": [0.2604166666666667, 0.33854166666666663, 0.515625]},
-      "publication_state": {"latent": 0.265625, "latent_threshold": 0.85, "pass": false, "release": 0.5520833333333333, "release_threshold": 0.8},
-      "rhythmic_admission_damage": {"pass": true, "threshold": 0.15, "value": 0.15104166666666666},
-      "specificity_margin": {"pass": false, "threshold": 0.3, "values": [0.21875000000000003, 0.1770833333333333, 0.015625]},
-      "task_valid_count": {"pass": false, "threshold": 9, "value": 4}
+      "admission_damage": {
+        "pass": false,
+        "threshold": 0.2,
+        "value": -0.0625
+      },
+      "own_surface_transplants": {
+        "pass": false,
+        "threshold": 0.8,
+        "values": [
+          0.328125,
+          0.33854166666666663,
+          0.515625
+        ]
+      },
+      "publication_state": {
+        "latent": 0.265625,
+        "latent_threshold": 0.85,
+        "pass": false,
+        "release": 0.5520833333333333,
+        "release_threshold": 0.8
+      },
+      "rhythmic_admission_damage": {
+        "pass": true,
+        "threshold": 0.15,
+        "value": 0.15104166666666666
+      },
+      "specificity_margin": {
+        "pass": false,
+        "threshold": 0.3,
+        "values": [
+          0.2864583333333333,
+          0.18229166666666663,
+          0.0
+        ]
+      },
+      "task_valid_count": {
+        "pass": false,
+        "threshold": 9,
+        "value": 4
+      }
     },
     "overall_pass": false,
-    "own_surface_medians": [0.2604166666666667, 0.33854166666666663, 0.515625],
+    "own_surface_medians": [
+      0.328125,
+      0.33854166666666663,
+      0.515625
+    ],
     "publication_latent_median": 0.265625,
     "publication_release_median": 0.5520833333333333,
     "rhythmic_damage_median": 0.15104166666666666,
-    "specificity_margins": [0.21875000000000003, 0.1770833333333333, 0.015625],
+    "specificity_margins": [
+      0.2864583333333333,
+      0.18229166666666663,
+      0.0
+    ],
     "task_valid_count": 4
   },
-  "canonical_reproduction": "second complete run matched byte-for-byte",
+  "canonical_reproduction": "second complete corrected run matched byte-for-byte",
   "config": {
-    "admission_damage_margin": 0.2, "batch_size": 768, "canonical_seeds": [0,1,2,3,4,5,6,7,8,9,10,11], "clamp_pairs": 96,
-    "cycles": 5, "development_seeds": [1000,1001], "gauge_steps": 96, "go_loss_weight": 16.0, "gradient_clip": 5.0,
-    "hidden_size": 16, "hold_steps": [4,8,12], "learning_rate": 0.008, "max_steps": 34, "microcycle": 4, "operator_rank": 4,
-    "ping_test_episodes": 128, "ping_train_episodes": 128, "probe_epsilon": 1e-05, "publication_latent_threshold": 0.85,
-    "publication_release_threshold": 0.8, "rhythmic_damage_margin": 0.15, "silence_mae_threshold": 0.1, "specificity_margin": 0.3,
-    "task_accuracy_threshold": 0.9, "test_episodes": 384, "train_episodes": 768, "training_epochs": 140, "transplant_pairs": 96,
-    "transplant_threshold": 0.8, "validation_episodes": 192, "weight_decay": 1e-05
+    "admission_damage_margin": 0.2,
+    "batch_size": 768,
+    "canonical_seeds": [0,1,2,3,4,5,6,7,8,9,10,11],
+    "clamp_pairs": 96,
+    "cycles": 5,
+    "development_seeds": [1000,1001],
+    "gauge_steps": 96,
+    "go_loss_weight": 16.0,
+    "gradient_clip": 5.0,
+    "hidden_size": 16,
+    "hold_steps": [4,8,12],
+    "learning_rate": 0.008,
+    "max_steps": 34,
+    "microcycle": 4,
+    "operator_rank": 4,
+    "ping_test_episodes": 128,
+    "ping_train_episodes": 128,
+    "probe_epsilon": 1e-05,
+    "publication_latent_threshold": 0.85,
+    "publication_release_threshold": 0.8,
+    "rhythmic_damage_margin": 0.15,
+    "silence_mae_threshold": 0.1,
+    "specificity_margin": 0.3,
+    "task_accuracy_threshold": 0.9,
+    "test_episodes": 384,
+    "train_episodes": 768,
+    "training_epochs": 140,
+    "transplant_pairs": 96,
+    "transplant_threshold": 0.8,
+    "validation_episodes": 192,
+    "weight_decay": 1e-05
   },
+  "correctness_note": "canonical rerun after masked override repair; prior pre-fix receipt invalidated",
   "full_receipt_gzip": "results/gatgrils_v1.json.gz",
-  "full_receipt_sha256": "5967a95c5915295d701b244619062a9caf0c1283549d684db3d7c836a009a519",
-  "gzip_sha256": "b9ec19e8aa35122f76e578b9c22fdcb6735194dd25f908a8955755d686d63324",
+  "full_receipt_sha256": "74230dff1d85c605eec43a0489c8bcd240dba2811d19727753db83ccf890ffb4",
+  "gzip_sha256": "82690015d558337c5cdb47616cfc4ce513d9948cb76d93b78fb9d7ba5a549e4b",
   "schema": "gatgrils-v1-canonical-index-v1",
   "secondary_summary": {
     "gauge_max_output_discrepancy": 1.0574874309554616e-14,
     "gauge_max_transition_tv": 0.0,
-    "gauge_median_invariant_drift_by_condition": {"1.0": 5.550935540174269e-12, "10.0": 3.6109033295571636e-11, "3.0": 9.867029519765492e-12},
-    "silent_ping_factor_accuracy_median": {"operator": 1.0, "phase": 1.0, "route": 1.0},
-    "silent_ping_reset_accuracy_median": {"operator": 0.5, "phase": 0.5, "route": 0.5}
+    "gauge_median_invariant_drift_by_condition": {
+      "1.0": 5.550935540174269e-12,
+      "10.0": 3.6109033295571636e-11,
+      "3.0": 9.867029519765492e-12
+    },
+    "silent_ping_factor_accuracy_median": {"operator":1.0,"phase":1.0,"route":1.0},
+    "silent_ping_reset_accuracy_median": {"operator":0.5,"phase":0.5,"route":0.5}
   },
   "seed_task_metrics": [
     {"go_nonselected_mae":0.24452099790571014,"seed":0,"selected_route_sign_accuracy":0.8385416666666666,"silent_mae":0.02644291824416806,"task_valid":false},
