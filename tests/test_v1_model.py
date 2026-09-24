@@ -43,3 +43,18 @@ def test_development_training_reduces_loss_and_is_deterministic():
     assert ra == rb
     for pa, pb in zip(a.parameters(), b.parameters()):
         assert torch.equal(pa, pb)
+
+
+def test_training_traffic_is_deterministically_resampled_each_epoch():
+    from gatgrils.v1_train import _training_dataset_seed
+    assert _training_dataset_seed(1000, 0) == _training_dataset_seed(1000, 0)
+    assert _training_dataset_seed(1000, 0) != _training_dataset_seed(1000, 1)
+    assert _training_dataset_seed(1000, 1) != _training_dataset_seed(1001, 1)
+
+
+def test_training_pins_tiny_cpu_workload_to_one_torch_thread():
+    from gatgrils.v1_train import train_v1
+    cfg = default_v1_config()
+    torch.set_num_threads(max(2, min(4, torch.get_num_threads())))
+    train_v1(1000, cfg, epochs=1, episode_count=32)
+    assert torch.get_num_threads() == 1
