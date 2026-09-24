@@ -67,11 +67,11 @@ The corrected canonical run reproduced byte-for-byte on a second complete run. T
 74230dff1d85c605eec43a0489c8bcd240dba2811d19727753db83ccf890ffb4
 ```
 
-`results/gatgrils_v1.json` is the readable index. The exact full receipt is stored losslessly as `results/gatgrils_v1.full.part00` … `part08`; concatenate those files in lexical order to recover the canonical JSON.
+`results/gatgrils_v1.json` is the readable index. The exact full corrected receipt is stored losslessly as `results/gatgrils_v1.json.gz`; the receipt checker follows the index to that gzip artifact automatically.
 
 ## Relation to KolmeOvea
 
-[`anttiluode/KolmeOvea`](https://github.com/anttiluode/KolmeOvea) is the independent known-answer / trained companion line for the same apical–basket–chandelier question. Its results and GATGRILS v1 both caution against assuming that task learning automatically produces a clean three-door decomposition, while both leave timing as the most robust distinction. The two repos should be read as complementary experiments, not as claims that these toy control surfaces are established biological functions.
+[`anttiluode/KolmeOvea`](https://github.com/anttiluode/KolmeOvea) is the independent companion line for the same apical–basket–chandelier question. Its results and GATGRILS v1 both caution against assuming that task learning automatically produces a clean three-door decomposition, while both leave timing as the most robust distinction. The two repos should be read as complementary experiments, not as claims that these toy control surfaces are established biological functions.
 
 `FrequencyAndNeurons` answers a different, upstream question—what sets the local oscillation period—so it is intentionally not folded into this experiment.
 
