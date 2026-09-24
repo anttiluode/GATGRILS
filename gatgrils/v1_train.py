@@ -31,22 +31,27 @@ def _subset(batch: EpisodeTensors, idx: np.ndarray) -> EpisodeTensors:
     return EpisodeTensors(*(getattr(batch, k)[ti] for k in ('cue','content','go','clock','target','mask')))
 
 
+def _training_dataset_seed(seed: int, epoch: int) -> int:
+    return int(seed * 100003 + 17 + epoch * 7919)
+
+
 def train_v1(seed: int, cfg: V1Config, epochs: int | None = None,
-             episode_count: int | None = None) -> tuple[ThreeSurfaceCell, dict[str, float | int]]:
+             episode_count: int | None = None) -> tuple[ThreeSurfaceCell, dict[str, float | int | str]]:
     torch.manual_seed(int(seed))
     torch.use_deterministic_algorithms(True)
+    torch.set_num_threads(1)
     model = ThreeSurfaceCell(cfg).double()
     n = int(episode_count or cfg.train_episodes)
-    episodes = generate_dataset(seed * 100003 + 17, n, cfg)
-    batch = stack_episodes(episodes)
+    diagnostic = stack_episodes(generate_dataset(_training_dataset_seed(seed, 0), n, cfg))
     with torch.no_grad():
-        initial = float(task_loss(model, batch, cfg))
+        initial = float(task_loss(model, diagnostic, cfg))
     opt = torch.optim.Adam(model.parameters(), lr=cfg.learning_rate, weight_decay=cfg.weight_decay)
     rng = np.random.default_rng(seed * 100003 + 23)
     epochs_run = int(epochs if epochs is not None else cfg.training_epochs)
     steps = 0
     model.train()
-    for _ in range(epochs_run):
+    for epoch in range(epochs_run):
+        batch = stack_episodes(generate_dataset(_training_dataset_seed(seed, epoch), n, cfg))
         order = rng.permutation(n)
         for start in range(0, n, cfg.batch_size):
             idx = order[start:start + cfg.batch_size]
@@ -58,9 +63,11 @@ def train_v1(seed: int, cfg: V1Config, epochs: int | None = None,
             opt.step(); steps += 1
     model.eval()
     with torch.no_grad():
-        final = float(task_loss(model, batch, cfg))
-    receipt = {'seed': int(seed), 'initial_loss': initial, 'final_loss': final,
-               'epochs': epochs_run, 'optimizer_steps': int(steps), 'episodes': n}
+        final = float(task_loss(model, diagnostic, cfg))
+    receipt: dict[str, float | int | str] = {
+        'seed': int(seed), 'initial_loss': initial, 'final_loss': final,
+        'epochs': epochs_run, 'optimizer_steps': int(steps), 'episodes_per_epoch': n,
+        'training_traffic': 'deterministically_resampled_each_epoch'}
     return model, receipt
 
 
