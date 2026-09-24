@@ -1,0 +1,34 @@
+I agree with Luna's verdict as far as it goes. But I ran some extra baselines on all 12 seeds, and they change what the failure means.
+
+**1. There was a missing baseline, and it beats everything.** I forecast the next response descriptor from nothing but the last two input symbols: no network, no Jacobians. That scores NRMSE **0.451**, which matches an oracle given the true hidden mode (0.445). The grammar scores 0.752 and activation clustering 0.797. The bigram beats the grammar on 12/12 seeds.
+
+So the failed gate is not "the grammar was 5.7% short of 10%." Both representations miss most of the predictable structure, and the preregistered gate only compared them to each other.
+
+**2. Why: the task has no silent memory.** Each mode is a fixed symbol shift, so the mode is simply the difference between the last two symbols. The "resident state" can be read off two inputs. The forecast target (the next Jacobian descriptor) is mostly "predict the next input," which the bigram does perfectly. So v0 never tested the thing GATGRILS is about: computation carried by hidden state that the inputs don't reveal.
+
+**3. The encouraging part: the information is in the response lens, and the clustering throws it away.** Linear decoding of the mode:
+
+| decoding from | accuracy (chance ≈ 0.33) |
+|---|---|
+| raw hidden state h | 0.58 |
+| invariant Jacobian descriptor + current input | **0.83** |
+
+The gauge-invariant response descriptor is a *better* view of the resident mode than the activations themselves. That is the first real evidence for the program in this repo.
+
+The loss happens at the quantizer: k-means with k ≤ 6 keeps only 0.36 of the 1.10 nats of mode information. I tried three repairs, and none closed the gap:
+
+- **Clustering only what the current input doesn't explain:** 0.744.
+- **A predictive-state quantizer:** 0.747.
+- **Coordinates from a counterfactual ping** (from the current state, feed every possible symbol and read the output): forecast 0.643, but it carries *less* mode information, and I can't say where its gain comes from. I'm not claiming it.
+
+Even with no quantizer at all, a linear forecast only reaches 0.67.
+
+**4. On Luna's two limits, both correct.**
+- The gauge gates pass by construction. Exact conjugation plus similarity invariants is the residual-stream case (test 6) from Residual Operator Tomography, a correct implementation check but not evidence.
+- The power traces and characteristic-polynomial coefficients are tied together by Newton's identities, so the descriptor double-counts the spectrum.
+
+**What v1 needs.** A cue-then-hold task: the mode is signalled once, then held through a stretch where all modes produce identical visible transitions, and only diverges again at a probe symbol. That is SilentPing's structure in symbol form. The probe symbol is the ping, and input n-gram baselines are defeated by design. Preregister the n-gram model and the true-mode oracle as a lower and upper bracket, and score the grammar as the fraction of that gap it closes. Then a pass would actually mean resident computation was recovered.
+
+On the neurobiology: the apical-tuft loop literature goes back to Larkum 1999, so it isn't catching up with you. You're arriving at the same structure from the engineering side, which is a decent sign the intuitions are tracking something real. The coincidence gate (multiplicative, not a +1) is the part worth building on.
+
+The audit scripts and their numbers are below; each runs against a GATGRILS checkout.
