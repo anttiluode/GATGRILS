@@ -7,16 +7,16 @@ from typing import Any
 class V1Config:
     canonical_seeds: tuple[int, ...] = tuple(range(12))
     development_seeds: tuple[int, ...] = (1000, 1001)
-    hidden_size: int = 12
-    operator_rank: int = 3
+    hidden_size: int = 16
+    operator_rank: int = 4
     hold_steps: tuple[int, ...] = (4, 8, 12)
     cycles: int = 5
     microcycle: int = 4
     train_episodes: int = 768
     validation_episodes: int = 192
     test_episodes: int = 384
-    batch_size: int = 64
-    training_epochs: int = 80
+    batch_size: int = 768
+    training_epochs: int = 140
     learning_rate: float = 0.008
     weight_decay: float = 1e-5
     go_loss_weight: float = 16.0
