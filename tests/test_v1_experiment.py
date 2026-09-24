@@ -45,3 +45,16 @@ def test_check_receipt_loader_follows_canonical_index_to_gzip(tmp_path):
     index = tmp_path / "gatgrils_v1.json"
     index.write_text(json.dumps({"schema":"gatgrils-v1-canonical-index-v1", "full_receipt_gzip": gz.name}))
     assert _load_expected_receipt(index) == full
+
+
+def test_check_receipt_loader_concatenates_indexed_parts(tmp_path):
+    import json
+    from gatgrils.v1_experiment import _load_expected_receipt
+    full = {"schema": "gatgrils-v1-temporal-control-v1", "seeds": [{"seed": 0}], "aggregate": {"overall_pass": False}}
+    text = json.dumps(full, sort_keys=True, indent=2, allow_nan=False) + "\n"
+    cut = len(text)//2
+    (tmp_path / "part0").write_text(text[:cut])
+    (tmp_path / "part1").write_text(text[cut:])
+    index = tmp_path / "gatgrils_v1.json"
+    index.write_text(json.dumps({"schema":"gatgrils-v1-canonical-index-v1", "full_receipt_parts": ["part0","part1"]}))
+    assert _load_expected_receipt(index) == full
