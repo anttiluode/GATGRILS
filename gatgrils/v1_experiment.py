@@ -76,6 +76,14 @@ def _canonical_json(obj): return json.dumps(obj,sort_keys=True,indent=2,allow_na
 def _load_expected_receipt(path):
     p=Path(path); obj=json.loads(p.read_text())
     if obj.get('schema')!='gatgrils-v1-canonical-index-v1': return obj
+    if 'full_receipt_parts' in obj:
+        chunks=[]
+        for item in obj['full_receipt_parts']:
+            ref=Path(item); candidates=(ref, p.parent/ref.name, p.parent/ref)
+            part=next((q for q in candidates if q.exists()), None)
+            if part is None: raise FileNotFoundError(f'full receipt part not found: {ref}')
+            chunks.append(part.read_text())
+        return json.loads(''.join(chunks))
     ref=Path(obj['full_receipt_gzip'])
     candidates=(ref, p.parent/ref.name, p.parent/ref)
     gz=next((q for q in candidates if q.exists()), None)
