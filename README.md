@@ -126,10 +126,36 @@ V1 keeps the v0 result frozen and asks a different question: when one learned re
 
 The cue is a single 8-way token, both temporal streams share one scalar content channel, and no auxiliary gate-label, factor-classification, disentanglement, transplant, or intervention loss is used. The primary measurement is a 3×3 matched counterfactual transplant matrix, with publication-vs-admission clamps and rhythmic-vs-cycle-mean admission controls. Silent-ping, temporal-context, and gauge-aware grammar measurements are secondary and cannot rescue a failed primary gate.
 
-Run the frozen v1 panel with:
+The frozen configuration was selected on development seeds `1000` and `1001` before canonical execution. The first complete canonical panel used seeds `0..11`; failed gates and failed seeds were retained without retuning.
+
+### GATGRILS v1 canonical 12-seed receipt
+
+- **Overall:** FAIL
+- Task-valid seeds: **4/12** (requires 9)
+- Own-surface transplant medians — operator **0.260**, admission/phase **0.339**, publication/route **0.516** (each requires 0.80)
+- Specificity margins — operator **0.219**, phase **0.177**, route **0.016** (each requires 0.30)
+- Publication-clamp latent / release medians: **0.266 / 0.552** (requires 0.85 / 0.80)
+- Admission-clamp damage median: **-0.062** (requires +0.20)
+- Cycle-mean admission damage median: **0.151** (requires 0.15) → **PASS**
+
+So task-only learning did **not** produce the preregistered three-way causal specialization. The one primary effect that survived was timing sensitivity: replacing learned within-cycle admission by its cycle mean reduced phase-counterfactual accuracy by just over the frozen threshold.
+
+The secondary measurements make the negative result more specific rather than rescuing it. A neutral silent ping decoded the resident cue factors with median held-out accuracy **1.0** for operator, phase, and route; resetting the resident state reduced all three medians to **0.5**. Thus the system did learn a silent resident state that changes how a later ping is processed, but that state did not organize the three available control points into the clean operator/admission/publication division tested here.
+
+Gauge controls remained numerically stable: maximum base/twin output discrepancy was `1.06e-14`, maximum aligned grammar transition TV was `0`, and median invariant drift was approximately `5.55e-12`, `9.87e-12`, and `3.61e-11` at condition numbers 1, 3, and 10.
+
+The readable canonical index is `results/gatgrils_v1.json`. The complete lossless receipt is `results/gatgrils_v1.json.gz`; its decompressed canonical JSON SHA-256 is `5967a95c5915295d701b244619062a9caf0c1283549d684db3d7c836a009a519`. A second complete frozen run matched that receipt byte-for-byte.
+
+To reproduce into a scratch file without overwriting the committed index:
 
 ```bash
-python -m gatgrils.v1_experiment --output results/gatgrils_v1.json
+python -m gatgrils.v1_experiment --output /tmp/gatgrils_v1_full.json
 ```
 
-The canonical v1 result block will be rendered here from the first complete frozen 12-seed receipt; negative seeds and failed gates are retained.
+To recompute and compare against the committed full receipt through the readable index:
+
+```bash
+python -m gatgrils.v1_experiment --check-receipt results/gatgrils_v1.json
+```
+
+See `docs/superpowers/specs/2026-09-24-gatgrils-v1-temporal-control-design.md` and `docs/superpowers/plans/2026-09-24-gatgrils-v1-temporal-control.md` for the frozen design and implementation plan.
