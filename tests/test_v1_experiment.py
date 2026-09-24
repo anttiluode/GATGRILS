@@ -32,3 +32,16 @@ def test_readme_keeps_frozen_v0_and_separates_v1():
     assert "8/12" in text
     assert "0.75229" in text
     assert "0.797405" in text
+
+
+def test_check_receipt_loader_follows_canonical_index_to_gzip(tmp_path):
+    import gzip, json
+    from gatgrils.v1_experiment import _load_expected_receipt
+    full = {"schema": "gatgrils-v1-temporal-control-v1", "seeds": [{"seed": 0}], "aggregate": {"overall_pass": False}}
+    raw = (json.dumps(full, sort_keys=True, indent=2, allow_nan=False) + "\n").encode()
+    gz = tmp_path / "gatgrils_v1.json.gz"
+    with gzip.GzipFile(filename=str(gz), mode="wb", mtime=0) as f:
+        f.write(raw)
+    index = tmp_path / "gatgrils_v1.json"
+    index.write_text(json.dumps({"schema":"gatgrils-v1-canonical-index-v1", "full_receipt_gzip": gz.name}))
+    assert _load_expected_receipt(index) == full
