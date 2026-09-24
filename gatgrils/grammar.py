@@ -55,6 +55,7 @@ def _kmeans_pp_init(x: np.ndarray, k: int, seed: int) -> np.ndarray:
     for _ in range(1, k):
         total = float(np.sum(min_dist))
         if total <= 1e-18:
+            # Degenerate data: choose first not-yet-identical row deterministically.
             idx = next((i for i, row in enumerate(x) if not any(np.array_equal(row, c) for c in centers)), 0)
         else:
             probs = min_dist / total
@@ -79,6 +80,7 @@ def _fit_kmeans(x: np.ndarray, k: int, seed: int, max_iter: int = 100) -> np.nda
             if np.any(mask):
                 new_centers[j] = np.mean(x[mask], axis=0)
             else:
+                # Re-seed empty clusters at the point currently reconstructed worst.
                 nearest = np.min(distances, axis=1)
                 new_centers[j] = x[int(np.argmax(nearest))]
         centers = new_centers
@@ -113,6 +115,7 @@ def fit_response_coordinates(
         centers = _fit_kmeans(z_train, k, seed + 1009 * k)
         distances = np.sum((z_val[:, None, :] - centers[None, :, :]) ** 2, axis=2)
         distortion = float(np.mean(np.min(distances, axis=1)))
+        # Frozen MDL-like criterion: held-out distortion + parameter cost.
         penalty = float(k * d * np.log(max(n_val, 2)) / max(n_val, 1))
         score = distortion + penalty
         candidate = (score, k, centers)
@@ -199,10 +202,12 @@ def align_labels(reference: np.ndarray, candidate: np.ndarray) -> tuple[np.ndarr
     if ref.shape != cand.shape or ref.ndim != 1:
         raise ValueError("reference and candidate labels must be aligned 1-D arrays")
     k = int(max(np.max(ref), np.max(cand)) + 1)
-    confusion = np.zeros((k, k), dtype=np.int64)
+    confusion = np.zeros((k, k), dtype=np.int64)  # candidate, reference
     for c, r in zip(cand, ref):
         confusion[int(c), int(r)] += 1
 
+    # Exact assignment for the small preregistered k<=6 panel. This is the
+    # same objective as Hungarian assignment, with deterministic lexicographic ties.
     best_score = -1
     best_perm: tuple[int, ...] | None = None
     for perm in permutations(range(k)):
