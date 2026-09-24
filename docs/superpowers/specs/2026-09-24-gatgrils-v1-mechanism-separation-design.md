@@ -26,6 +26,8 @@ Use the same symbol-stream family, float64 arithmetic, train/validation/test sep
 
 For each of 12 deterministic seeds, train three systems on the same training stream with the same optimizer family, training budget, hidden-state dimension, input alphabet, and readout dimension.
 
+Generator mode labels remain unavailable to training, response construction, shared-coordinate fitting, model selection, grammar fitting, mechanism-distance calculation, and pass/fail gates. They may be used only for post-hoc diagnostics after all learned-system comparisons are complete.
+
 ### A1 and A2 — one-stage tanh RNN replicates
 
 A1 and A2 use the v0 recurrent form but independent deterministic initialization seeds:
@@ -74,6 +76,8 @@ The canonical panel requires at least 9 of 12 seeds to be behavior-matched. All 
 
 The behavior gate is evaluated before the mechanism-separation gate. Unmatched seeds cannot count as mechanism-separation wins.
 
+Behavior matching is defined only on the frozen held-out traffic used by v1. It is not a claim that A1, A2, and B are behaviorally identical under arbitrary counterfactual input sequences or hidden-state interventions.
+
 ## Freeze the v0 response descriptor
 
 Do not redesign the descriptor after seeing the v0 result. V1 reuses the exact v0 finite-difference response descriptor:
@@ -99,13 +103,15 @@ readout_G(h') = readout(G^-1 h')
 
 at condition numbers 1, 3, and 10.
 
-Each model must satisfy the same v0 invariance gates:
+For every model/seed/gauge pair, base/twin output maximum absolute discrepancy must be `<= 1e-10`. Any failure of exact base/twin output equivalence invalidates that model/seed for mechanism interpretation, but the failure remains in the receipt.
 
-- base/twin output maximum absolute discrepancy `<= 1e-10`;
-- median invariant-feature relative drift `<= 1e-6` at condition numbers 1 and 3;
-- median invariant-feature relative drift `<= 1e-4` at condition number 10.
+For each architecture panel separately (A1, A2, B), aggregate invariant-feature drift across the 12 seeds exactly as in v0:
 
-Any failure of exact base/twin output equivalence invalidates that model/seed for mechanism interpretation, but the failure remains in the receipt.
+- median relative drift `<= 1e-6` at condition number 1;
+- median relative drift `<= 1e-6` at condition number 3;
+- median relative drift `<= 1e-4` at condition number 10.
+
+The overall v1 mechanism claim requires all three architecture panels to pass these aggregate gauge-invariance gates.
 
 ## Common response-coordinate system for cross-model comparison
 
@@ -114,10 +120,13 @@ Cross-model comparison must not depend on arbitrary cluster labels learned separ
 For each seed:
 
 1. compute v0 response descriptors on the validation stream for A1, A2, and B;
-2. concatenate the three validation descriptor sets without supplying model identity labels;
-3. fit one shared response-coordinate model using the v0 deterministic clustering and validation-only MDL-like selection rule over the same frozen candidate cluster counts `{2, 3, 4, 5, 6}`;
-4. apply that single shared coordinate model to each system's validation and test descriptors;
-5. fit a separate event-conditioned transition grammar for A1, A2, and B in this common coordinate space.
+2. apply the same deterministic 67/33 chronological split used by v0 coordinate fitting to each model's validation descriptor sequence;
+3. concatenate the three early 67% fit segments into one pooled fit set and concatenate the three late 33% selection segments into one pooled selection set, without supplying model identity labels;
+4. fit one shared response-coordinate model on the pooled fit set and select cluster count only from the pooled selection set using the v0 MDL-like criterion over the frozen candidates `{2, 3, 4, 5, 6}`;
+5. apply that single shared coordinate model to each system's full validation and test descriptors;
+6. fit a separate event-conditioned transition grammar for A1, A2, and B in this common coordinate space using the frozen v0 transition smoothing.
+
+No test descriptor enters coordinate fitting or cluster-count selection.
 
 The shared codebook is used only for cross-model comparison. The existing v0 separately-fit-and-label-aligned procedure remains the gauge-control implementation.
 
@@ -125,7 +134,7 @@ The shared codebook is used only for cross-model comparison. The existing v0 sep
 
 For two models X and Y in the common coordinate space, define a visitation-weighted transition total-variation distance.
 
-For each source coordinate `c` and input symbol `u`, compute the total-variation distance between the two next-coordinate distributions. Weight that row by the average empirical validation visitation frequency of `(c, u)` in X and Y, then normalize the weights to sum to one.
+For each source coordinate `c` and input symbol `u`, compute the total-variation distance between the two next-coordinate distributions. Weight that row by the average empirical validation visitation frequency of `(c, u)` in X and Y, then normalize the nonzero weights to sum to one. Rows unvisited by both models receive zero weight.
 
 Call the resulting distance `D(X, Y)`.
 
@@ -145,15 +154,16 @@ Also report, but do not gate on, matched-time descriptor distances and post-hoc 
 A seed counts as a **mechanism-separation win** only if:
 
 - the seed is behavior-matched;
-- all three base systems pass exact gauge-twin output equivalence;
+- all three base systems pass exact gauge-twin output equivalence at all three tested condition numbers;
 - `D_mechanism > D_replicate`.
 
 The canonical v1 mechanism claim passes only if all of the following preregistered conditions hold:
 
 1. at least 9 of 12 seeds are behavior-matched;
-2. at least 9 of 12 total seeds are mechanism-separation wins;
-3. across behavior-matched seeds, median `D_mechanism` is at least `1.25 ×` median `D_replicate`;
-4. across behavior-matched seeds, median `(D_mechanism - D_replicate)` is at least `0.02`.
+2. all three architecture panels pass the aggregate gauge-invariance drift gates above;
+3. at least 9 of 12 total seeds are mechanism-separation wins;
+4. across behavior-matched seeds, median `D_mechanism` is at least `1.25 ×` median `D_replicate`;
+5. across behavior-matched seeds, median `(D_mechanism - D_replicate)` is at least `0.02`.
 
 These conditions prevent a tiny numerical ordering from being reported as substantive mechanism separation.
 
@@ -204,6 +214,7 @@ V1 does not claim:
 - unique or canonical internal coordinates;
 - identification of arbitrary computational mechanisms;
 - invariance to nonlinear reparameterizations;
+- behavioral equivalence outside the frozen held-out traffic;
 - equivalence of all models that share task accuracy;
 - causal sufficiency of the recovered grammar;
 - minimality of the response descriptor;
