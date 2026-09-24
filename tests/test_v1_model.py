@@ -58,3 +58,24 @@ def test_training_pins_tiny_cpu_workload_to_one_torch_thread():
     torch.set_num_threads(max(2, min(4, torch.get_num_threads())))
     train_v1(1000, cfg, epochs=1, episode_count=32)
     assert torch.get_num_threads() == 1
+
+
+def test_control_override_mask_recomputes_unmasked_steps_from_evolving_state():
+    from gatgrils.v1_model import ControlOverride
+    cfg = default_v1_config()
+    torch.manual_seed(17)
+    model = ThreeSurfaceCell(cfg).double()
+    B, T = 1, 6
+    cue = torch.zeros(B, T, 8, dtype=torch.float64)
+    content = torch.ones(B, T, 1, dtype=torch.float64)
+    go = torch.zeros(B, T, 1, dtype=torch.float64)
+    clock = torch.zeros(B, T, 2, dtype=torch.float64)
+    base = model(cue, content, go, clock)
+    donor = torch.full_like(base.g_op, 0.9)
+    mask = torch.zeros(B, T, 1, dtype=torch.bool)
+    mask[:, 1:4] = True
+    changed = model(cue, content, go, clock,
+                    override=ControlOverride(g_op=donor, g_op_mask=mask))
+    assert torch.allclose(changed.g_op[:, 1:4], donor[:, 1:4])
+    expected_last = torch.tanh(model.op_gate(changed.hidden[:, 4]))
+    assert torch.allclose(changed.g_op[:, 5], expected_last)
