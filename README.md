@@ -1,119 +1,87 @@
 # GATGRILS
 
-**Gauge-Aware Temporal Grammar Recovery in a Learned System** asks a deliberately small question: can local response behavior in a learned recurrent system be compressed into reusable computation coordinates whose **temporal grammar predicts future local responses**, and does that description survive an exact change of hidden-state basis?
+Gauge-Aware Temporal Grammar Recovery in a Learned System.
 
-This v0 is a deterministic, CPU-only **synthetic recurrent model** experiment. It is a method test. It does not claim a universal algorithm, biological equivalence, transformer interpretability, unique/minimal coordinates, or superiority to recurrent networks as predictors.
+This repository now contains two frozen experiments. **v0** asks whether a local, basis-independent grammar of recurrent computation can be recovered. **v1** asks whether task-only learning turns three architecturally different control surfaces into three causally different jobs: operator modulation, phase-dependent admission, and publication.
 
-## Run it
+## GATGRILS v0 — frozen result
 
-Requires Python 3.11+ and NumPy. Pytest is only a development dependency.
+V0 remains unchanged as a historical method result. It trains a small recurrent system, estimates local Jacobians, describes them with similarity-invariant features, and checks the same learned computation after exact invertible changes of hidden-state basis.
+
+Canonical 12-seed result:
+
+- **Overall:** FAIL
+- Exact gauge-twin output equivalence: **PASS**
+- Maximum aligned grammar transition TV: **0**
+- Forecast wins vs both activation and shuffled controls: **8/12**
+- Median grammar NRMSE: **0.75229**
+- Median activation-clustering NRMSE: **0.797405**
+- Ordered-transition NLL control: **12/12 PASS**
+
+The important negative is preserved: v0 recovered basis-invariant temporal structure but did not earn the stronger preregistered predictive claim.
+
+## What “gauge-aware” means here
+
+The hidden coordinates of an RNN are not unique. For any invertible matrix `G`, write
+
+```text
+h' = G h
+F_G(h', u) = G F(G^-1 h', u)
+```
+
+and transform the readout back with `G^-1`. The base network and its gauge twin compute the same input/output function even though the raw hidden activations and Jacobian entries look different.
+
+GATGRILS therefore describes local computation with quantities unchanged by the similarity transform `J' = G J G^-1`: power traces, characteristic-polynomial information, and ordered multi-step traces. “Gauge-aware” means the analysis tries to follow the computation rather than the arbitrary orientation of hidden-state axes.
+
+## GATGRILS v1 — learned temporal control surfaces
+
+V1 uses one trained recurrent system with three genuinely different intervention points:
+
+- **operator surface** — changes the local recurrent transformation;
+- **admission surface** — changes whether content arriving at a particular within-cycle phase enters effectively;
+- **publication surface** — changes whether the already-computed latent result is emitted.
+
+Training gets only task loss. The cue is one 8-way token; the operator/phase/route factors are experimenter metadata, not three labeled training channels. The primary causal test is a 3×3 matched transplant matrix plus publication-vs-admission clamps and rhythmic-vs-cycle-mean admission controls.
+
+The configuration was frozen on development seeds `1000` and `1001` before canonical evaluation. The canonical seeds are exactly `0..11`. A final correctness repair added masked intervention windows so recipient dynamics recompute normally outside the transplanted interval; the pre-fix receipt was invalidated and the same frozen models/config/seeds were rerun.
+
+### Corrected canonical 12-seed result
+
+- **Overall:** FAIL
+- Task-valid seeds: **4/12** (requires 9)
+- Own-surface transplant medians — operator **0.328**, admission/phase **0.339**, publication/route **0.516** (requires 0.80 each)
+- Specificity margins — operator **0.286**, phase **0.182**, route **0.000** (requires 0.30 each)
+- Publication-clamp latent / first-release medians: **0.266 / 0.552** (requires 0.85 / 0.80)
+- Admission-clamp damage median: **-0.0625** (requires +0.20)
+- Cycle-mean admission damage median: **0.151** (requires 0.15) → **PASS**
+
+So task-only learning did **not** demonstrate the preregistered three-way operator/admission/publication specialization. Only the timing control survived the primary gates: replacing the learned within-cycle admission profile by its cycle mean reduced phase-counterfactual performance just beyond the frozen threshold.
+
+The strongest positive is secondary but clean: a neutral **silent ping** at the end of the hold decoded resident operator, phase, and route factors with median held-out accuracy **1.0 / 1.0 / 1.0**. Resetting the resident state dropped all three to **0.5 / 0.5 / 0.5**. The learned system therefore carried a silent resident state that changed what a later ping encountered, even though that state did not decompose cleanly across the three control surfaces.
+
+Gauge controls remained stable after the v1 repair: maximum base/twin output discrepancy `1.06e-14`, aligned grammar transition TV `0`, and median invariant drift approximately `5.55e-12`, `9.87e-12`, and `3.61e-11` at condition numbers 1, 3, and 10.
+
+The corrected canonical run reproduced byte-for-byte on a second complete run. The full canonical JSON SHA-256 is:
+
+```text
+74230dff1d85c605eec43a0489c8bcd240dba2811d19727753db83ccf890ffb4
+```
+
+`results/gatgrils_v1.json` is the readable index. The exact full corrected receipt is stored losslessly as `results/gatgrils_v1.json.gz`; the receipt checker follows the index to that gzip artifact automatically.
+
+## Relation to KolmeOvea
+
+[`anttiluode/KolmeOvea`](https://github.com/anttiluode/KolmeOvea) is the independent companion line for the same apical–basket–chandelier question. Its results and GATGRILS v1 both caution against assuming that task learning automatically produces a clean three-door decomposition, while both leave timing as the most robust distinction. The two repos should be read as complementary experiments, not as claims that these toy control surfaces are established biological functions.
+
+`FrequencyAndNeurons` answers a different, upstream question—what sets the local oscillation period—so it is intentionally not folded into this experiment.
+
+## Run / verify
 
 ```bash
 python -m pip install -e '.[dev]'
 python -m pytest -q
-python -m gatgrils.experiment --config default --output results/gatgrils_v0.json
+python -m gatgrils.v1_experiment --output /tmp/gatgrils_v1_full.json
+python -m gatgrils.v1_experiment --check-receipt results/gatgrils_v1.json
 ```
 
-The default command trains and evaluates all 12 preregistered deterministic seeds and writes the complete per-seed and aggregate receipt to `results/gatgrils_v0.json`. Negative runs and failing gates are part of the result and are not discarded.
-
-## Experimental object
-
-A persistent latent mode selects one of several fixed symbol-transition maps. The learner sees only the current symbol and a next-symbol objective. **Mode labels are diagnostic metadata only**: they never enter RNN training, response-feature construction, cluster-count selection, grammar fitting, or gate calculation.
-
-A small tanh RNN is trained with explicit truncated backpropagation through time in float64 and then frozen. For a hidden state `h` and one-hot input `u`, its recurrent update is `F(h, u)`. At held-out validation and test states, GATGRILS estimates the local Jacobian
-
-```text
-J_t = dF(h_t, u_t) / dh
-```
-
-with central finite differences. A discovery probe bank spans hidden space; a separate **held-out probe** bank checks unseen Jacobian-vector products. That JVP score is calibration only and is not used as the cross-gauge predictive score.
-
-## Exact gauge twins
-
-For an invertible, bounded-condition matrix `G`, the conjugate system is
-
-```text
-F_G(h', u) = G F(G^-1 h', u)
-readout_G(h') = readout(G^-1 h')
-```
-
-with `h' = G h`. The base model and gauge twin therefore implement the same input/output computation, while their raw hidden coordinates and raw Jacobian entries generally differ. v0 tests condition numbers 1, 3, and 10 and rejects draws outside their assigned condition bound.
-
-## Response descriptor
-
-The discovered descriptor never uses the generator's hidden mode. For each finite-difference Jacobian it contains deterministic similarity-invariant quantities:
-
-- normalized power traces `tr(J^k) / d` for short powers,
-- dimension-normalized characteristic-polynomial coefficients,
-- an algebraic-rank diagnostic,
-- causal ordered short-window traces ending at the current step: `tr(J_(t-1) J_t)/d` and `tr(J_(t-2) J_(t-1) J_t)/d`.
-
-The last two terms deliberately retain operator order that per-step spectra alone cannot. A separate per-step-only control removes those ordered terms.
-
-Candidate coordinate counts are clustered with deterministic NumPy k-means and selected using one fixed validation-only MDL-like score. The fitted temporal grammar is a first-order event-conditioned distribution
-
-```text
-p(c_(t+1) | c_t, u_t)
-```
-
-where `c_t` is the recovered response coordinate. Gauge twins are aligned only by coordinate-label assignment at matching validation times; hidden mode labels are not used for alignment.
-
-## Controls
-
-v0 reports all preregistered controls:
-
-- **activation clustering** — the same coordinate-selection machinery on raw hidden activations;
-- **per-step invariant only** — removes ordered two- and three-step trace features;
-- **shuffled response sequence** — preserves response-feature distribution while destroying temporal order;
-- **bag of coordinates** — preserves coordinate counts while discarding transition order;
-- **held-out probe bank** — checks finite-difference Jacobian generalization to unseen directions;
-- **gauge twins** — exact same learned computation in another hidden basis.
-
-The primary held-out predictive score is the NRMSE of the **next gauge-invariant response descriptor**, predicted from the current coordinate and current input. The JVP calibration is reported separately so coordinate-invariance is not confused with a coordinate-dependent probe-response target.
-
-## Frozen v0 gates
-
-The pass thresholds come from the approved design spec and are not changed after observing results:
-
-1. Base/twin output maximum absolute discrepancy **≤ 1e-10** in float64.
-2. Median invariant-feature relative drift **≤ 1e-6** at condition numbers 1 and 3, and **≤ 1e-4** at condition number 10.
-3. After coordinate-label alignment, gauge-twin transition-distribution total variation **≤ 0.02**.
-4. Grammar-conditioned held-out forecast NRMSE must beat both activation clustering and shuffled responses on at least **9/12** seeds, and its median NRMSE must be at least **10%** lower than activation clustering.
-5. Ordered grammar held-out transition NLL must beat both shuffled-order and bag-of-coordinates controls on at least **9/12** seeds.
-
-Any failure of exact gauge-twin output equivalence invalidates that seed. Other unmet gates remain ordinary negative results. No metric is dropped because it is inconvenient.
-
-## Claim boundary
-
-A positive v0 would show only that, in this synthetic learned recurrent system under this traffic, a gauge-invariant local-response description can be recovered and can carry predictive temporal structure. It **does not claim** that the recovered coordinates are unique, globally minimal, causally sufficient, robust to arbitrarily ill-conditioned bases, identical to the generator modes, biological computation primitives, or directly transferable to a transformer.
-
-A negative predictive gate is also informative: it would mean that the experiment recovered basis-invariant response coordinates without earning the stronger claim that this particular temporal grammar forecasts better than the preregistered controls.
-
-## Canonical result
-
-The canonical result block below is generated from the committed receipt after the frozen 12-seed run.
-
-<!-- canonical-summary:start -->
-### Canonical 12-seed receipt summary
-
-- **Overall:** FAIL
-- Exact gauge-twin output equivalence (≤ 1e-10): **PASS**
-- Median invariant drift: cond 1 = 8.352e-12, cond 3 = 1.400e-11, cond 10 = 5.098e-11 → **PASS**
-- Maximum aligned grammar transition TV = 0 (≤ 0.02) → **PASS**
-- Forecast wins vs both activation and shuffled controls = 8/12; median grammar NRMSE = 0.75229, activation = 0.797405 → **FAIL**
-- Ordered-transition NLL wins vs both shuffled-order and bag controls = 12/12 → **PASS**
-- Median held-out JVP relative error (calibration only) = 4.570e-11
-
-This block is rendered from `results/gatgrils_v0.json`; failing gates are retained rather than retuned.
-<!-- canonical-summary:end -->
-
-## Reproducibility notes
-
-- All experiment arithmetic is float64.
-- Each stream, model, probe bank, shuffle, and gauge draw uses an explicit deterministic NumPy seed.
-- Train, validation, and test symbol streams use disjoint derived seeds.
-- The finite-difference step is fixed in configuration.
-- Discovery and held-out probe banks are distinct.
-- The canonical receipt includes every seed, every control, every gauge condition, gate values, and explicit failure reasons.
-
-See `docs/superpowers/specs/2026-09-23-gatgrils-design.md` for the approved design and `docs/superpowers/plans/2026-09-23-gatgrils-v0.md` for the implementation plan.
+See `docs/superpowers/specs/2026-09-24-gatgrils-v1-temporal-control-design.md` and `docs/superpowers/plans/2026-09-24-gatgrils-v1-temporal-control.md` for the frozen v1 design and implementation plan. V0’s original design and plan remain under the corresponding `2026-09-23` files.

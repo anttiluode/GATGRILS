@@ -7,7 +7,7 @@ name = "gatgrils"
 version = "0.1.0"
 description = "Gauge-aware temporal grammar recovery in a learned recurrent system"
 requires-python = ">=3.11"
-dependencies = ["numpy>=1.26"]
+dependencies = ["numpy>=1.26", "torch>=2.2"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8"]
