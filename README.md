@@ -1,5 +1,7 @@
 # GATGRILS
 
+## GATGRILS v0 — frozen result
+
 **Gauge-Aware Temporal Grammar Recovery in a Learned System** asks a deliberately small question: can local response behavior in a learned recurrent system be compressed into reusable computation coordinates whose **temporal grammar predicts future local responses**, and does that description survive an exact change of hidden-state basis?
 
 This v0 is a deterministic, CPU-only **synthetic recurrent model** experiment. It is a method test. It does not claim a universal algorithm, biological equivalence, transformer interpretability, unique/minimal coordinates, or superiority to recurrent networks as predictors.
@@ -117,3 +119,17 @@ This block is rendered from `results/gatgrils_v0.json`; failing gates are retain
 - The canonical receipt includes every seed, every control, every gauge condition, gate values, and explicit failure reasons.
 
 See `docs/superpowers/specs/2026-09-23-gatgrils-design.md` for the approved design and `docs/superpowers/plans/2026-09-23-gatgrils-v0.md` for the implementation plan.
+
+## GATGRILS v1 — learned temporal control surfaces
+
+V1 keeps the v0 result frozen and asks a different question: when one learned recurrent system is given three architecturally distinct intervention points—state-dependent operator modulation, phase-dependent input admission, and post-computation publication—does task-only learning use them as causally separable control surfaces?
+
+The cue is a single 8-way token, both temporal streams share one scalar content channel, and no auxiliary gate-label, factor-classification, disentanglement, transplant, or intervention loss is used. The primary measurement is a 3×3 matched counterfactual transplant matrix, with publication-vs-admission clamps and rhythmic-vs-cycle-mean admission controls. Silent-ping, temporal-context, and gauge-aware grammar measurements are secondary and cannot rescue a failed primary gate.
+
+Run the frozen v1 panel with:
+
+```bash
+python -m gatgrils.v1_experiment --output results/gatgrils_v1.json
+```
+
+The canonical v1 result block will be rendered here from the first complete frozen 12-seed receipt; negative seeds and failed gates are retained.
