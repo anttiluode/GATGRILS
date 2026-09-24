@@ -19,6 +19,8 @@ class V1Config:
     training_epochs: int = 80
     learning_rate: float = 0.008
     weight_decay: float = 1e-5
+    go_loss_weight: float = 16.0
+    gradient_clip: float = 5.0
     task_accuracy_threshold: float = 0.90
     silence_mae_threshold: float = 0.10
     transplant_threshold: float = 0.80
