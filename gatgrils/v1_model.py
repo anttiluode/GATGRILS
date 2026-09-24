@@ -10,6 +10,9 @@ class ControlOverride:
     g_op: torch.Tensor | None = None
     admission: torch.Tensor | None = None
     publication: torch.Tensor | None = None
+    g_op_mask: torch.Tensor | None = None
+    admission_mask: torch.Tensor | None = None
+    publication_mask: torch.Tensor | None = None
 
 
 @dataclass
@@ -93,13 +96,13 @@ class ThreeSurfaceCell(nn.Module):
             squeeze = False
         g_op = torch.tanh(self.op_gate(hidden))
         if override is not None and override.g_op is not None:
-            g_op = override.g_op
+            g_op = override.g_op if override.g_op_mask is None else torch.where(override.g_op_mask, override.g_op, g_op)
         operator_delta = self.op_b(g_op * self.op_a(hidden))
         phase_vector = self.adm_phase_base + self.adm_phase_h(hidden)
         admission = torch.sigmoid(self.adm_bias + self.adm_h(hidden) +
                                   (clock * phase_vector).sum(dim=-1, keepdim=True))
         if override is not None and override.admission is not None:
-            admission = override.admission
+            admission = override.admission if override.admission_mask is None else torch.where(override.admission_mask, override.admission, admission)
         x_eff = admission * content
         pre = (self.recurrent(hidden) + self.cue_proj(cue) +
                x_eff * self.content_weight.unsqueeze(0) + self.go_proj(go) + operator_delta)
@@ -107,7 +110,7 @@ class ThreeSurfaceCell(nn.Module):
         latent = torch.tanh(self.latent_head(hidden_next))
         publication = torch.sigmoid(self.pub_h(hidden_next) + go * self.pub_go.unsqueeze(0))
         if override is not None and override.publication is not None:
-            publication = override.publication
+            publication = override.publication if override.publication_mask is None else torch.where(override.publication_mask, override.publication, publication)
         emitted = publication * latent
         if squeeze:
             return StepTrace(*(x.squeeze(0) for x in (hidden_next, g_op, admission, latent, publication, emitted)))
@@ -127,7 +130,10 @@ class ThreeSurfaceCell(nn.Module):
             if override is not None:
                 o = ControlOverride(g_op=_override_at(override.g_op, t),
                                     admission=_override_at(override.admission, t),
-                                    publication=_override_at(override.publication, t))
+                                    publication=_override_at(override.publication, t),
+                                    g_op_mask=_override_at(override.g_op_mask, t),
+                                    admission_mask=_override_at(override.admission_mask, t),
+                                    publication_mask=_override_at(override.publication_mask, t))
             st = self.step_from_hidden(hidden, cue[:, t], content[:, t], go[:, t], clock[:, t], o)
             hidden = st.hidden
             hs.append(st.hidden); gs.append(st.g_op); ads.append(st.admission)
