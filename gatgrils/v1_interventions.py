@@ -33,7 +33,8 @@ def _batch_override(override: ControlOverride | None) -> ControlOverride | None:
         if x is None: return None
         return x.unsqueeze(0) if x.ndim in (1, 2) else x
     return ControlOverride(g_op=b(override.g_op), admission=b(override.admission),
-                           publication=b(override.publication))
+                           publication=b(override.publication), g_op_mask=b(override.g_op_mask),
+                           admission_mask=b(override.admission_mask), publication_mask=b(override.publication_mask))
 
 
 def run_episode(model: ThreeSurfaceCell, ep: Episode,
@@ -69,14 +70,14 @@ def _matches(y: np.ndarray, ep: Episode) -> bool:
 def _transplant_override(recipient, donor, surface: str, ep: Episode) -> ControlOverride:
     start = 1 + ep.hold_steps
     if surface == "operator":
-        x = recipient.g_op.clone(); x[start:ep.go_index] = donor.g_op[start:ep.go_index]
-        return ControlOverride(g_op=x)
+        mask = torch.zeros((ep.content.shape[0], 1), dtype=torch.bool); mask[start:ep.go_index] = True
+        return ControlOverride(g_op=donor.g_op, g_op_mask=mask)
     if surface == "admission":
-        x = recipient.admission.clone(); x[start:ep.go_index] = donor.admission[start:ep.go_index]
-        return ControlOverride(admission=x)
+        mask = torch.zeros((ep.content.shape[0], 1), dtype=torch.bool); mask[start:ep.go_index] = True
+        return ControlOverride(admission=donor.admission, admission_mask=mask)
     if surface == "publication":
-        x = recipient.publication.clone(); x[ep.go_index] = donor.publication[ep.go_index]
-        return ControlOverride(publication=x)
+        mask = torch.zeros((ep.content.shape[0], 1), dtype=torch.bool); mask[ep.go_index] = True
+        return ControlOverride(publication=donor.publication, publication_mask=mask)
     raise ValueError(surface)
 
 
@@ -119,10 +120,10 @@ def publication_vs_admission_clamp(model: ThreeSurfaceCell, cfg: V1Config, seed:
     for ep in episodes:
         base = run_episode(model, ep)
         start = max(1 + ep.hold_steps, ep.go_index - 8)
-        p = base.publication.clone(); p[start:ep.go_index, ep.q] = 0.0
-        pub = run_episode(model, ep, ControlOverride(publication=p))
-        a = base.admission.clone(); a[start:ep.go_index] = 0.0
-        adm = run_episode(model, ep, ControlOverride(admission=a))
+        p = torch.zeros_like(base.publication); pmask = torch.zeros_like(base.publication, dtype=torch.bool); pmask[start:ep.go_index, ep.q] = True
+        pub = run_episode(model, ep, ControlOverride(publication=p, publication_mask=pmask))
+        a = torch.zeros_like(base.admission); amask = torch.zeros_like(base.admission, dtype=torch.bool); amask[start:ep.go_index] = True
+        adm = run_episode(model, ep, ControlOverride(admission=a, admission_mask=amask))
         pub_lat.append(_latent_sign_ok(pub.latent[ep.go_index - 1], ep))
         adm_lat.append(_latent_sign_ok(adm.latent[ep.go_index - 1], ep))
         pub_release.append(_matches(pub.emitted[ep.go_index].numpy(), ep))
@@ -153,10 +154,11 @@ def rhythmic_admission_controls(model: ThreeSurfaceCell, cfg: V1Config, seed: in
         base = run_episode(model, ep)
         base_ok.append(_matches(base.emitted[ep.go_index].numpy(), ep))
         a = base.admission.clone(); start = 1 + ep.hold_steps
+        amask = torch.zeros_like(a, dtype=torch.bool)
         for k in range(cfg.cycles):
             sl = slice(start + 4*k, start + 4*k + 4)
-            a[sl] = a[sl].mean(dim=0, keepdim=True)
-        mean = run_episode(model, ep, ControlOverride(admission=a))
+            a[sl] = a[sl].mean(dim=0, keepdim=True); amask[sl] = True
+        mean = run_episode(model, ep, ControlOverride(admission=a, admission_mask=amask))
         mean_ok.append(_matches(mean.emitted[ep.go_index].numpy(), ep))
         rt = _retimed_episode(ep, cfg)
         retimed = run_episode(model, rt)
