@@ -1,5 +1,5 @@
 from __future__ import annotations
-import argparse, json, platform
+import argparse, gzip, json, platform
 from pathlib import Path
 import numpy as np
 import torch
@@ -73,6 +73,15 @@ def run_panel(cfg:V1Config,seeds:tuple[int,...])->dict:
 
 def _canonical_json(obj): return json.dumps(obj,sort_keys=True,indent=2,allow_nan=False)+'\n'
 
+def _load_expected_receipt(path):
+    p=Path(path); obj=json.loads(p.read_text())
+    if obj.get('schema')!='gatgrils-v1-canonical-index-v1': return obj
+    ref=Path(obj['full_receipt_gzip'])
+    candidates=(ref, p.parent/ref.name, p.parent/ref)
+    gz=next((q for q in candidates if q.exists()), None)
+    if gz is None: raise FileNotFoundError(f'full receipt gzip not found: {ref}')
+    with gzip.open(gz,'rt') as f: return json.load(f)
+
 def write_receipt(receipt,path): Path(path).parent.mkdir(parents=True,exist_ok=True); Path(path).write_text(_canonical_json(receipt))
 
 def main(argv=None):
@@ -80,7 +89,7 @@ def main(argv=None):
     args=p.parse_args(argv); cfg=default_v1_config(); seeds=cfg.development_seeds if args.development else cfg.canonical_seeds
     receipt=run_panel(cfg,seeds)
     if args.check_receipt:
-        expected=json.loads(Path(args.check_receipt).read_text())
+        expected=_load_expected_receipt(args.check_receipt)
         if _canonical_json(receipt)!=_canonical_json(expected): raise SystemExit('receipt mismatch')
         print('receipt check: PASS'); return 0
     write_receipt(receipt,args.output); print(json.dumps(receipt['aggregate'],indent=2)); return 0
