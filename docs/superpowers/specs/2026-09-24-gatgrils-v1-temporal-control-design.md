@@ -103,8 +103,6 @@ g_op(t)   = tanh(W_op h_t + b_op)
 Delta_op  = B_op [ g_op(t) * (A_op h_t) ]
 ```
 
-and the hidden update includes `Delta_op` in addition to the ordinary recurrent path.
-
 This gives learning a place to change the effective local operator without directly adding task content to the output.
 
 ### 2. Admission control surface
@@ -120,9 +118,26 @@ where `phi_t = (sin φ_t, cos φ_t)`.
 
 The bilinear term lets resident state move the open phase. Cue and GO channels are not multiplied by this gate.
 
+### Recurrent update
+
+The three ordinary input components are the 8-way cue vector, gated scalar content, and GO flag. The hidden update is explicitly:
+
+```text
+h_(t+1) = tanh(
+    W_h h_t
+    + Delta_op
+    + W_cue cue_t
+    + w_x x_eff(t)
+    + w_go GO_t
+    + b_h
+)
+```
+
+No phase identity, operator bit, or route bit is injected separately into this update. They are available only through the learned effect of the single cue token on resident state.
+
 ### 3. Publication control surface
 
-The frozen hidden state produces two ungated latent route values:
+The hidden state produces two ungated latent route values:
 
 ```text
 v_t = tanh(W_y h_t + b_y)      # two routes
@@ -170,23 +185,23 @@ The key experiment does not inspect which cue bit a control head “represents.�
 
 Construct matched episode pairs that have identical content and identical two factors, but differ in exactly one factor. Run both normally and record the control traces.
 
-Then rerun the recipient episode while overriding exactly one control surface with the donor trace.
+Then rerun the recipient episode from its own initial state while overriding exactly one control surface with the donor trace. **Do not transplant or clamp the donor hidden state.** The recipient hidden trajectory is allowed to evolve normally under the altered control, so any downstream change is a causal consequence of the transplanted surface.
 
 ### Operator transplant
 
-Pair episodes that differ only in `r`. During the content interval, transplant the donor `g_op(t)` trace into the recipient while leaving recipient hidden state, admission, publication, inputs, clock, and route cue unchanged.
+Pair episodes that differ only in `r`. During the content interval, transplant the donor `g_op(t)` trace into the recipient while recipient admission, publication, inputs, clock, and initial resident state remain its own.
 
 A successful operator transplant makes the recipient answer the donor operator's counterfactual target on the same admitted content.
 
 ### Admission transplant
 
-Pair episodes that differ only in `p`. During content, transplant the donor admission trace `a_t` while leaving recipient hidden state/operator/publication unchanged.
+Pair episodes that differ only in `p`. During content, transplant the donor admission trace `a_t` while recipient operator control, publication, inputs, and initial resident state remain its own.
 
 A successful admission transplant makes the recipient compute from the donor-relevant temporal stream, even though both streams still use the same content input weights.
 
 ### Publication transplant
 
-Pair episodes that differ only in `q`. At GO/release, transplant the donor publication trace `p_t` while leaving hidden state, latent route values, operator, admission, and content unchanged.
+Pair episodes that differ only in `q`. At GO/release, transplant the donor publication trace `p_t` while recipient hidden dynamics, latent route values, operator control, admission, and content remain its own.
 
 A successful publication transplant moves the already-computed result to the donor route without requiring the hidden computation to be rerun.
 
@@ -208,26 +223,32 @@ The architecture names the intervention points, but **no training target says wh
 
 ## Publication state-preservation control
 
-The publication distinction needs a stronger test than “route output changed.”
+The publication distinction needs a stronger test than “route output changed,” and it must test **continued updating while silent**, not merely storage of an answer computed before the mute.
 
-After the content result has begun to form, clamp the selected publication gate closed for a frozen interval while content continues, then release it.
+Use a diagnostic continuation that begins from a normal held-out episode after the first part of its content sequence. Then:
+
+1. present a GO/permission signal that would normally make the selected route publish;
+2. externally clamp only the selected publication gate closed;
+3. continue delivering new relevant content for a frozen number of cycles, including at least one update that flips the correct running answer;
+4. release the publication clamp **without adding another content update**.
 
 Measure:
 
 - emitted selected-route output during the clamp;
-- ungated latent value `v_t` immediately before release;
-- first-step emitted accuracy after release.
+- ungated latent value `v_t` after each hidden content update;
+- latent sign accuracy immediately before release against the updated running target;
+- first-step emitted accuracy immediately after release.
 
-Run a matched control in which content admission is clamped closed for the same interval instead of publication.
+Run a matched control in which publication is left available but **content admission** is clamped closed for the same continuing-content interval.
 
 The intended distinction is:
 
 ```text
-publication clamp: output silent, latent computation keeps tracking
-admission clamp:   relevant evidence never enters, latent answer degrades
+publication clamp: output silent, hidden/latent computation tracks new evidence
+admission clamp:   new evidence never enters, latent answer misses the update
 ```
 
-This directly tests “admission gating != emission gating.”
+This directly tests “admission gating != emission gating” and mirrors the key `KolmeOvea` E3 distinction without assuming a biological AIS mechanism.
 
 ## Rhythmic admission control
 
@@ -235,7 +256,7 @@ For held-out episodes, replace the learned time-varying admission trace within e
 
 This is the learned analogue of replacing rhythmic basket inhibition with tonic inhibition of equal mean.
 
-Report phase-factor accuracy under:
+Report phase-factor counterfactual accuracy under:
 
 - learned rhythmic admission;
 - cycle-mean admission;
@@ -260,7 +281,7 @@ If the model solves the task but the specificity matrix is not diagonal/selectiv
 
 ## Secondary measurements: the GATGRILS instrument comes back in
 
-The primary v1 result is causal functional separation. If that gate is evaluated, run the following as secondary measurements regardless of whether it passes.
+The primary v1 result is causal functional separation. Run the following as secondary measurements after the primary gate has been evaluated; they cannot rescue it.
 
 ### Silent-ping tomography
 
@@ -270,13 +291,11 @@ Fit validation-only linear decoders for the three cue factors from the ping resp
 
 This asks whether a silent cue state can be read from **how the system responds to a fixed perturbation**, and whether reset destroys that information.
 
-These are descriptive in v1; they are not allowed to rescue a failed causal-separation gate.
-
 ### Context-invariance / temporal window
 
 Repeat matched central content snippets after different preceding cues and vary the cue-to-snippet lag. Measure how long the preceding context continues to alter the local response.
 
-Report an operational context window for the hidden response and for each control surface. Also report how the window changes when the episode timing is uniformly stretched/compressed.
+Report an operational context window for the hidden response and for each control surface. Also report how the window changes when episode timing is uniformly stretched/compressed.
 
 This borrows the black-box logic of temporal-context-invariance measurements: how far back can a context perturbation still change the present response?
 
